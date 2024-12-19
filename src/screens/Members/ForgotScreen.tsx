@@ -1,5 +1,6 @@
 import { useState } from 'react';
-
+import { auth } from '../../config';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { Link } from 'react-router-dom';
 
 // hooks
@@ -23,6 +24,10 @@ const ForgotScreen: React.FC = () => {
     phone: '',
   });
 
+  const [email, setEmail] = useState<string>('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   /**
    * Handles input changes in the forgot password form.
    *
@@ -44,8 +49,17 @@ const ForgotScreen: React.FC = () => {
    * @param {React.FormEvent} e - The form submission event.
    * @returns {void}
    */
-  const handleSubmit = (e: React.FormEvent): void => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage('Şifre sıfırlama e-postası gönderildi.');
+      setError(null);
+    } catch (error) {
+      setError('E-posta gönderilemedi. Lütfen tekrar deneyin.');
+      setMessage(null);
+      console.error('Password reset error:', error);
+    }
   };
 
   return (
@@ -71,17 +85,18 @@ const ForgotScreen: React.FC = () => {
                   <div className='form-elements'>
                     <div className='form-line'>
                       <div className='full-width'>
-                        <label htmlFor='phone'>Telefon numaranız</label>
+                        <label htmlFor='email'>Email Address</label>
                         <FormInput
-                          type='text'
-                          name='phone'
-                          onKeyDown={onlyNumbers}
-                          onChange={handleChange}
-                          value={formValues.phone}
-                          placeholder='Telefon numaranızı girin'
+                          type='email'
+                          name='email'
+                          onChange={(e) => setEmail(e.target.value)}
+                          value={email}
+                          placeholder='E-posta adresinizi girin'
                         />
                       </div>
                     </div>
+                    {message && <p style={{ color: 'green' }}>{message}</p>}
+                    {error && <p style={{ color: 'red' }}>{error}</p>}
                     <div className='form-line'>
                       <div className='full-width right'>
                         <Link to='/'>Giriş yap</Link>

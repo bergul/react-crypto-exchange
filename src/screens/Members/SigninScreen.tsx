@@ -1,11 +1,7 @@
 import { useState } from 'react';
-
 import { Link, useNavigate } from 'react-router-dom';
-
-// hooks
-import useFormEvents from '../../hooks/useFormEvents';
-
-// components
+import { auth } from '../../config';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import Box from '../../components/Common/Box';
 import MainLayout from '../../layouts/MainLayout';
 import FormInput from '../../components/Forms/FormInput';
@@ -13,44 +9,34 @@ import FormButton from '../../components/Forms/FormButton';
 
 // interfaces
 interface IFormProps {
-  phone: string;
+  email: string;
   password: string;
 }
 
 const SigninScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { onlyNumbers } = useFormEvents();
+  const [form, setForm] = useState<IFormProps>({ email: '', password: '' });
+  const [error, setError] = useState<string | null>(null);
 
-  const [formValues, setFormValues] = useState<IFormProps>({
-    phone: '',
-    password: '',
-  });
-
-  /**
-   * Handles input changes in the sign-in form.
-   *
-   * @param {React.ChangeEvent<HTMLInputElement>} e - The input change event.
-   * @returns {void}
-   */
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-
-    setFormValues({
-      ...formValues,
-      [name]: value,
-    });
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, form.email, form.password);
+      navigate('/dashboard'); // Giriş başarılı olursa yönlendirme yapın
+    } catch (error) {
+      setError('Email veya şifre hatalı.');
+      console.error('Email sign-in error:', error);
+    }
   };
 
-  /**
-   * Handles the form submission for the sign-in screen.
-   *
-   * @param {React.FormEvent} e - The form submission event.
-   * @returns {void}
-   */
-  const handleSubmit = (e: React.FormEvent): void => {
-    e.preventDefault();
-
-    navigate('/market');
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate('/dashboard'); 
+    } catch (error) {
+      setError((error as any).message);
+    }
   };
 
   return (
@@ -72,18 +58,17 @@ const SigninScreen: React.FC = () => {
                   Lütfen tarayıcınızın adres çubuğunda{' '}
                   <strong>https://pro.cryptoexchange.com</strong> yazdığından emin olunuz.
                 </p>
-                <form className='form' onSubmit={handleSubmit} noValidate>
+                <form className='form' onSubmit={handleEmailSignIn} noValidate>
                   <div className='form-elements'>
                     <div className='form-line'>
                       <div className='full-width'>
-                        <label htmlFor='phone'>Telefon numaranız</label>
+                        <label htmlFor='email'>Email Address</label>
                         <FormInput
-                          type='text'
-                          name='phone'
-                          onKeyDown={onlyNumbers}
-                          onChange={handleChange}
-                          value={formValues.phone}
-                          placeholder='Telefon numaranızı girin'
+                          type='email'
+                          name='email'
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          value={form.email}
+                          placeholder='Email adresinizi girin'
                         />
                       </div>
                     </div>
@@ -93,12 +78,13 @@ const SigninScreen: React.FC = () => {
                         <FormInput
                           type='password'
                           name='password'
-                          onChange={handleChange}
-                          value={formValues.password}
+                          onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          value={form.password}
                           placeholder='Şifrenizi girin'
                         />
                       </div>
                     </div>
+                    {error && <p style={{ color: 'red' }}>{error}</p>}
                     <div className='form-line'>
                       <div className='full-width right'>
                         <Link to='/members/forgot-password'>Şifremi unuttum</Link>
@@ -106,7 +92,12 @@ const SigninScreen: React.FC = () => {
                     </div>
                     <div className='form-line'>
                       <div className='buttons'>
-                        <FormButton type='submit' text='Giriş yap' onClick={handleSubmit} />
+                        <FormButton onClick={handleEmailSignIn} type='submit' text='Email ile Giriş Yap' />
+                      </div>
+                    </div>
+                    <div className='form-line'>
+                      <div className='buttons'>
+                        <FormButton  type='' onClick={handleGoogleSignIn} text='Google ile Giriş Yap' />
                       </div>
                     </div>
                     <div className='form-line'>
